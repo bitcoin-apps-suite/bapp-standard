@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/b0ase/bitcoinappsuite/schema/bapp.schema.json",
+  "$id": "https://github.com/bitcoin-apps-suite/bapp-standard/schema/bapp.schema.json",
   "title": "bApp manifest (bapp.json)",
   "description": "Manifest a bApp serves at /bapp.json. Spec v0.1 draft; see SPEC.md section 6.",
   "type": "object",
