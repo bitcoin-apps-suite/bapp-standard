@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/b0ase/bitcoinappsuite/schema/bapp.schema.json",
+  "title": "bApp manifest (bapp.json)",
+  "description": "Manifest a bApp serves at /bapp.json. Spec v0.1 draft; see SPEC.md section 6.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["bapp", "name", "short_name", "icon", "start_url", "category", "permissions", "price", "developer", "signature"],
+  "properties": {
+    "bapp": { "description": "Spec version the manifest targets.", "type": "string", "const": "0.1" },
+    "name": {
+      "description": "Display name: a lowercase b followed by a capital letter, e.g. bChat.",
+      "type": "string",
+      "pattern": "^b[A-Z0-9][A-Za-z0-9 ]{0,39}$"
+    },
+    "short_name": { "type": "string", "minLength": 1, "maxLength": 12 },
+    "description": { "type": "string", "maxLength": 120 },
+    "icon": { "description": "Square PNG or SVG, at least 192px. HTTPS URL or a path relative to the origin.", "type": "string", "pattern": "^(https://|/)" },
+    "start_url": { "type": "string", "pattern": "^(https://|/)" },
+    "category": { "type": "string", "enum": ["work", "media", "social", "money"] },
+    "permissions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "enum": ["identity", "handle", "sign", "encrypt", "pay", "tokens", "certificates"] }
+    },
+    "price": {
+      "description": "Always in US dollars. The wallet converts to sats at the live rate.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model"],
+      "properties": {
+        "model": { "type": "string", "enum": ["free", "per_use", "subscription", "tips"] },
+        "usd": { "description": "Decimal string, at most 2 decimal places, e.g. \"0.01\".", "type": "string", "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]{1,2})?$" },
+        "period": { "type": "string", "enum": ["day", "week", "month", "year"] }
+      },
+      "allOf": [
+        { "if": { "properties": { "model": { "enum": ["per_use", "subscription"] } } }, "then": { "required": ["usd"] } },
+        { "if": { "properties": { "model": { "const": "subscription" } } }, "then": { "required": ["period"] } }
+      ]
+    },
+    "token": {
+      "description": "Recommended. The app's BSV-21 token, ticker $b<Name>.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ticker", "tokenId"],
+      "properties": {
+        "ticker": { "type": "string", "pattern": "^\\$b[A-Z0-9][A-Za-z0-9]{0,30}$" },
+        "tokenId": { "description": "BSV-21 token id, <txid>_<vout>.", "type": "string", "pattern": "^[0-9a-f]{64}_[0-9]{1,6}$" }
+      }
+    },
+    "developer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "identityKey"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "identityKey": { "description": "33-byte compressed public key, hex.", "type": "string", "pattern": "^0[23][0-9a-fA-F]{64}$" }
+      }
+    },
+    "source": { "type": "string", "format": "uri" },
+    "signature": {
+      "description": "DER ECDSA signature (hex) by developer.identityKey over the canonical JSON of the manifest without this field.",
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{16,200}$"
+    }
+  }
+}

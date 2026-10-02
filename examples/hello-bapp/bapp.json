@@ -1,0 +1,16 @@
+{
+  "bapp": "0.1",
+  "name": "bHello",
+  "short_name": "bHello",
+  "description": "The smallest possible bApp: connect and tip a cent.",
+  "icon": "/icon.png",
+  "start_url": "/",
+  "category": "social",
+  "permissions": ["identity", "pay"],
+  "price": { "model": "tips", "usd": "0.01" },
+  "developer": {
+    "name": "Example Developer",
+    "identityKey": "020000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "signature": "00000000000000000000000000000000"
+}

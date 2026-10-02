@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>bHello</title>
+    <link rel="bapp-manifest" href="/bapp.json" />
+    <style>
+      :root { --bapp-bg: #010101; --bapp-gold: #ffd24d; --bapp-ink: #f4f1e8; --bapp-muted: #a9a69c; --bapp-edge: #23252b; }
+      html, body { height: 100%; margin: 0; background: var(--bapp-bg); color: var(--bapp-ink); color-scheme: dark; }
+      body { font: 16px/1.5 system-ui, sans-serif; padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom); }
+      main { max-width: 480px; margin: 0 auto; padding: 24px 0; }
+      h1 { margin: 0 0 4px; } h1 b { color: var(--bapp-gold); }
+      p { color: var(--bapp-muted); }
+      .card { border: 1px solid var(--bapp-edge); border-radius: 16px; padding: 16px; margin: 16px 0; }
+      button { font: inherit; font-weight: 600; border: 0; border-radius: 999px; padding: 12px 20px; background: var(--bapp-gold); color: #010101; }
+      button:disabled { opacity: 0.4; }
+      code { word-break: break-all; color: var(--bapp-ink); }
+    </style>
+  </head>
+  <body>
+    <!-- No header, no tab bar, no back arrow: bWallet provides those. -->
+    <main>
+      <h1><b>b</b>Hello</h1>
+      <p id="where"></p>
+
+      <div class="card">
+        <button id="connect">Connect</button>
+        <p id="who"></p>
+      </div>
+
+      <div class="card">
+        <button id="tip" disabled>Tip $0.01</button>
+        <p id="tipStatus">Connect first.</p>
+      </div>
+    </main>
+
+    <script type="module">
+      // Where tips go. Set your own address; never put keys here.
+      const TIP_ADDRESS = ''; // e.g. a P2PKH address you control
+      const TIP_USD = 0.01;
+
+      const $ = (id) => document.getElementById(id);
+
+      // 1. Detection (SPEC section 1). A layout hint, not a security check.
+      const inWallet = /\bYoursWalletMobile\/\d+/.test(navigator.userAgent);
+      const wallet = window.CWI; // injected by bWallet at document start
+      $('where').textContent = inWallet
+        ? 'Running inside bWallet.'
+        : 'Open this page in bWallet (Apps tab) to connect.';
+      if (!wallet) $('connect').disabled = true;
+
+      // 2. Connect: identity key, no password (SPEC section 3).
+      $('connect').onclick = async () => {
+        try {
+          const { authenticated } = await wallet.isAuthenticated({});
+          if (!authenticated) await wallet.waitForAuthentication({});
+          const { publicKey } = await wallet.getPublicKey({ identityKey: true });
+          $('who').innerHTML = 'Identity key: <code></code>';
+          $('who').querySelector('code').textContent = publicKey;
+          $('tip').disabled = !TIP_ADDRESS;
+          $('tipStatus').textContent = TIP_ADDRESS ? 'Ready.' : 'Set TIP_ADDRESS in index.html to enable tips.';
+        } catch (e) {
+          $('who').textContent = 'Not connected: ' + (e?.message || e);
+        }
+      };
+
+      // 3. Tip: priced in dollars, paid in sats (SPEC section 4).
+      //    Today: convert at the live rate and call createAction. When the Proposed
+      //    requestPayment({ usd }) exists, the wallet does the conversion instead.
+      $('tip').onclick = async () => {
+        try {
+          if (typeof wallet.requestPayment === 'function') {
+            await wallet.requestPayment({ usd: TIP_USD.toFixed(2), to: TIP_ADDRESS, memo: 'bHello tip' });
+          } else {
+            const { rate } = await (await fetch('https://api.whatsonchain.com/v1/bsv/main/exchangerate')).json();
+            const sats = Math.max(1, Math.round((TIP_USD / rate) * 1e8));
+            const { P2PKH } = await import('https://esm.sh/@bsv/sdk@1');
+            const lockingScript = new P2PKH().lock(TIP_ADDRESS).toHex();
+            await wallet.createAction({
+              description: `Tip $${TIP_USD.toFixed(2)} to bHello`,
+              outputs: [{ lockingScript, satoshis: sats, outputDescription: 'bHello tip' }],
+            });
+          }
+          $('tipStatus').textContent = 'Thanks for the cent.';
+        } catch (e) {
+          $('tipStatus').textContent = 'Tip not sent: ' + (e?.message || e);
+        }
+      };
+    </script>
+  </body>
+</html>
