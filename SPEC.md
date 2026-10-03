@@ -109,9 +109,27 @@ A bApp MUST NOT ask a bWallet user for a password, email login or seed phrase. F
 2. The app calls `createSignature` with the nonce as `data`, a protocol ID such as `[2, 'bapp login']` and a `keyID`.
 3. The server checks the signature against the identity key (or the app calls `verifySignature`) and opens a session.
 
-### 3.4 The `$handle` (**Proposed**)
+### 3.4 The `$handle`
 
-bWallet users have a `$handle`, which is also their paymail. There's no provider method yet that returns it to a page. Proposed: `getHandle()` → `{ handle: '$alice', paymail: 'alice@…', identityKey }`, gated by the same permission prompt as `getPublicKey`. Until then, bApps SHOULD show a shortened identity key and MAY look up a handle through public paymail/BAP resolution.
+bWallet users have a `$handle`, which is also their paymail: `alias@bwallet.space`. The user claims the alias in bWallet (Settings › Identity), where it is registered against their identity key on the wallet's paymail server (`pay.bwallet.space`; client in `src/mobile/names/paymail.ts`). The mapping from identity key to paymail is public.
+
+A bApp resolves the handle from the identity key it got in 3.2:
+
+```
+GET https://pay.bwallet.space/api/paymail/lookup?key=<identityKey>
+→ 200 { "paymail": "alice@bwallet.space" }      the user's handle is $alice
+→ 404                                            no handle claimed yet
+```
+
+Rules:
+
+- Show `$alias`, the paymail's local part. Fall back to the shortened identity key when the lookup returns nothing: not everyone claims a handle.
+- Never ask the user to type their handle, and never treat a typed handle as identity. The identity key is the account id; the handle is a label for it, and it can be renamed or deleted.
+- Call the lookup from your server or proxy it through your origin. The paymail server's CORS policy is not part of this spec.
+- `GET https://pay.bwallet.space/api/paymail/id/<paymail>` is the paymail's public profile (bsvalias). A `404` means the alias is free. When the profile publishes an ordinals address, send the user's tokens and ordinals there.
+- A HandCash `$handle` is a different namespace (`alias@handcash.io`). Only a `bwallet.space` paymail is a bWallet handle.
+
+**Proposed:** a provider method `getHandle()` → `{ handle: '$alice', paymail: 'alice@bwallet.space', identityKey }`, gated by the same permission prompt as `getPublicKey`, so in-frame bApps need no network call. Until it ships, the lookup above is the way.
 
 ## 4. Payments
 
@@ -208,7 +226,7 @@ The Apps tab in bWallet has three pages: **Home**, **bApps** and **Other apps**.
 
 ## 10. Open questions
 
-1. Should `$handle` be returned by a new method, or as a BRC-52 certificate through `proveCertificate`?
+1. Handles ship as paymail aliases resolvable from the identity key (3.4). Should the wallet also return them in-band: a `getHandle()` method, or a BRC-52 certificate through `proveCertificate`?
 2. Can a bApp ask for a one-click allowance of its own (for example "$1 a day for this app"), separate from the wallet-wide limit?
 3. Which price oracle does the wallet use for `requestPayment`, and how long does a quote stay valid?
 4. Canonical JSON: adopt RFC 8785 (JCS) exactly, or a simpler sorted-keys rule?

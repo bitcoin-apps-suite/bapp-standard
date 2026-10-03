@@ -24,7 +24,9 @@ The idea is simple. A bApp lives in bWallet's frame, between the wallet's top ba
 
 ## Status
 
-v0.1 is a draft. bWallet already supports detection, the injected BRC-100 provider (`window.CWI`), dark-theme hosting, the bApps listing and one-click limits. The manifest, signed listings and USD-denominated payment requests are **Proposed**.
+v0.1 is a draft. bWallet already supports detection, the injected BRC-100 provider (`window.CWI`), in-frame hosting over the XDM substrate, dark-theme hosting, the bApps listing, `$handle` resolution from the identity key (paymail aliases at `bwallet.space`, SPEC section 3.4) and one-click limits. The manifest, signed listings, an in-band `getHandle()` and USD-denominated payment requests are **Proposed**.
+
+Reference implementation: [bMint](https://github.com/b0ase/bcorp-mint) (`shared/lib/bwallet.ts`, `website/app/api/auth/bwallet/`) does detection, connect, handle resolution, challenge/response login and `createAction` inscriptions against this spec.
 
 ## License
 
